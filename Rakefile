@@ -1,3 +1,4 @@
+require 'rototiller'
 require 'rake'
 require 'rspec/core/rake_task'
 require 'puppetlabs_spec_helper/rake_tasks'
@@ -27,51 +28,59 @@ RSpec::Core::RakeTask.new(:coverage) do |t|
   t.rcov_opts = ['--exclude', 'spec']
 end
 
+flags = [
+    {:name => '--preserve-hosts', :default => 'never', :override_env => 'PRESERVE_HOSTS'},
+    {:name => '--config', :default => 'tests/configs/$PLATFORM'},
+    {:name => '--keyfile', :default => '~/.ssh/id_rsa-acceptance'},
+    {:name => '--load-path', :default => 'tests/lib'},
+]
+
 desc 'Executes reference tests (agent only) intended for use in CI'
-task :reference_tests do
-    command =<<-EOS
-bundle exec beaker                          \
-    --debug                                 \
-    --preserve-hosts never                  \
-    --config tests/configs/$PLATFORM        \
-    --keyfile ~/.ssh/id_rsa-acceptance      \
-    --load-path tests/lib                   \
-    --type aio                              \
-    --pre-suite tests/reference/pre-suite   \
-    --tests tests/reference/tests           
-    EOS
-    sh command
+rototiller_task :reference_tests do |t|
+
+  t.add_flag(*flags)
+  t.add_flag(
+      {:name => '--tests', :default => 'tests/reference/tests'},
+      {:name => '--pre-suite', :default => 'tests/reference/pre-suite'},
+      {:name => '--type', :default => 'aio'},
+  )
+
+  t.add_command(name: 'beaker --debug')
+
+  t.add_env do |env|
+    env.name = 'PLATFORM'
+    env.default = 'windows-2012r2-64a'
+    env.message = 'Platform set to windows-2012r2-64a'
+  end
+
+  t.add_env do |env|
+    env.name = 'MODULE_VERSION'
+    env.default = '0.8.0-b20048-68d7507d'
+  end
 end
 
-desc 'Executes accetpance tests (master and agent) indened for use in CI'
-task :acceptance_tests do
-    command =<<-EOS
-bundle exec beaker                          \
-    --debug                                 \
-    --preserve-hosts never                  \
-    --config tests/configs/$PLATFORM        \
-    --keyfile ~/.ssh/id_rsa-acceptance      \
-    --load-path tests/lib                   \
-    --pre-suite tests/acceptance/pre-suite  \
-    --tests tests/acceptance/tests          
-    EOS
-    sh command
-end
+desc 'Executes acceptance tests (master and agent) intended for use in CI'
+rototiller_task :acceptance_tests do |t|
 
-task :acceptance_tests => [:basic_enviroment_variable_check, :acceptance_enviroment_varible_check]
-task :reference_tests => [:basic_enviroment_variable_check]
+  t.add_flag(*flags)
 
-task :basic_enviroment_variable_check do
-    abort("PLATFORM variable not present, aborting test.") unless ENV["PLATFORM"]
-    abort("MODULE_VERSION variable not present, aborting test.") unless ENV["MODULE_VERSION"]
-end
+  t.add_flag(
+       {:name => '--tests', :default => 'tests/acceptance/tests'},
+       {:name => '--pre-suite', :default => 'tests/acceptance/pre-suite'},
+       {:name => 'BEAKER_PE_DIR', :default => 'http://enterprise.delivery.puppetlabs.net/archives/releases/3.8.2'},
+  )
 
-task :acceptance_enviroment_varible_check do
-    if ENV["BEAKER_PE_DIR"] && ENV["PE_DIST_DIR"]
-        abort("Either BEAKER_PE_DIR or PE_DIST_DIR variable should be set but not both, aborting test.")
-    end
-    if !ENV["BEAKER_PE_DIR"] && !ENV["PE_DIST_DIR"]
-        abort("Neither BEAKER_PE_DIR or PE_DIST_DIR variable is set, aborting test.")
-    end
+  t.add_command(name: 'beaker --debug')
+
+  t.add_env do |env|
+    env.name = 'PLATFORM'
+    env.default = 'windows-2012r2-64mda'
+    env.message = 'Platform set to windows-2012r2-64mda'
+  end
+
+  t.add_env do |env|
+    env.name = 'MODULE_VERSION'
+    env.default = '0.8.0-b20048-68d7507d'
+  end
 end
 
