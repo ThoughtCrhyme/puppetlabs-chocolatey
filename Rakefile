@@ -28,12 +28,16 @@ RSpec::Core::RakeTask.new(:coverage) do |t|
   t.rcov_opts = ['--exclude', 'spec']
 end
 
+ENV['MODULE_VERSION'] = '0.8.0-b20048-68d7507d'
+
 flags = [
     {:name => '--preserve-hosts', :default => 'never', :override_env => 'PRESERVE_HOSTS'},
     {:name => '--config', :default => 'tests/configs/$PLATFORM'},
     {:name => '--keyfile', :default => '~/.ssh/id_rsa-acceptance'},
     {:name => '--load-path', :default => 'tests/lib'},
 ]
+
+module_version_env = {:name => 'MODULE_VERSION', :default => '0.8.0-b20048-68d7507d'}
 
 desc 'Executes reference tests (agent only) intended for use in CI'
 rototiller_task :reference_tests do |t|
@@ -53,10 +57,7 @@ rototiller_task :reference_tests do |t|
     env.message = 'Platform set to windows-2012r2-64a'
   end
 
-  t.add_env do |env|
-    env.name = 'MODULE_VERSION'
-    env.default = '0.8.0-b20048-68d7507d'
-  end
+  t.add_env(module_version_env)
 end
 
 desc 'Executes acceptance tests (master and agent) intended for use in CI'
@@ -67,7 +68,7 @@ rototiller_task :acceptance_tests do |t|
   t.add_flag(
        {:name => '--tests', :default => 'tests/acceptance/tests'},
        {:name => '--pre-suite', :default => 'tests/acceptance/pre-suite'},
-       {:name => 'BEAKER_PE_DIR', :default => 'http://enterprise.delivery.puppetlabs.net/archives/releases/3.8.2'},
+       {:name => 'BEAKER_PE_DIR', :default => 'http://enterprise.delivery.puppetlabs.net/archives/releases/2016.2.0/'},
   )
 
   t.add_command(name: 'beaker --debug')
@@ -78,9 +79,6 @@ rototiller_task :acceptance_tests do |t|
     env.message = 'Platform set to windows-2012r2-64mda'
   end
 
-  t.add_env do |env|
-    env.name = 'MODULE_VERSION'
-    env.default = '0.8.0-b20048-68d7507d'
-  end
+  t.add_env(module_version_env)
 end
 
