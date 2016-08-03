@@ -2,6 +2,9 @@ require 'rototiller'
 require 'rake'
 require 'rspec/core/rake_task'
 require 'puppetlabs_spec_helper/rake_tasks'
+require 'json'
+require 'pry'
+
 begin
   require 'beaker/tasks/test' unless RUBY_PLATFORM =~ /win32/
 rescue LoadError
@@ -13,6 +16,17 @@ end
 PuppetLint.configuration.send('disable_80chars')
 # Line length test is 140 chars in puppet-lint 2.x
 PuppetLint.configuration.send('disable_140chars')
+
+$forge_api_url = "https://forgeapi.puppetlabs.com/v3/modules/puppetlabs-chocolatey"
+
+def get_latest_chocolatey_version_number()
+  uri = URI.parse($forge_api_url)
+
+  response = Net::HTTP.get_response(uri)
+  json_str = JSON.parse(response.body)
+
+  return json_str['current_release']['version']
+end
 
 task :default => [:test]
 
@@ -28,7 +42,7 @@ RSpec::Core::RakeTask.new(:coverage) do |t|
   t.rcov_opts = ['--exclude', 'spec']
 end
 
-ENV['MODULE_VERSION'] = '0.8.0-b20048-68d7507d'
+ENV['MODULE_VERSION'] = get_latest_chocolatey_version_number
 
 flags = [
     {:name => '--preserve-hosts', :default => 'never', :override_env => 'PRESERVE_HOSTS'},
